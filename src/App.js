@@ -7,6 +7,8 @@
 // onClick 1: текст стає перекресленим, а кнопка стає mark as in progress
 // onClick 2: видалити
 // в хедері: каунт тотал тудус, каунт дан тудус, каунт ектів тудус
+//https://www.youtube.com/watch?v=TViec4LuO3c&list=PLY1sAemBLA5xCCp5XcNlPkoyPks72Q7b0&index=62
+//19:48
 
 import React, {createContext, useContext, useState} from 'react';
 import {Switch, BrowserRouter as Router, Route, Link} from 'react-router-dom';
@@ -14,125 +16,150 @@ import {Switch, BrowserRouter as Router, Route, Link} from 'react-router-dom';
 const TodoContext = createContext();
 
 const TodoContextProvider = ({children}) => {
-  const [todos, setTodos] = useState([])
+    const [todos, setTodos] = useState([])
 
-  const onTodosCreate = (newTodo) => {
-    if (!newTodo || !newTodo.title || !newTodo.description) {
-      console.error('wrong arg for new todo, should be smth like {title: "...", description: "..."}')
-      return
+
+    const onTodoCreate = (newTodo) => {
+        if (!newTodo || !newTodo.title || !newTodo.description) {
+            console.error('wrong arg for new todo, should be smth like {title: "...", description: "..."}')
+            return
+        }
+
+        setTodos([newTodo, ...todos])
     }
 
-    setTodos([newTodo, ...todos])
-  }
+    const onTodoRemove = (todoId) => {
 
-  return (
-      <TodoContext.Provider value={{
-        todos,
-        onTodosCreate
-      }}>
-        {children}
-      </TodoContext.Provider>
-  )
+        if (!todoId) {
+            console.error('todo id looks wrong', todoId)
+            return
+        }
+        setTodos(todos.filter(el => el.id !== todoId))
+    }
+
+    return (
+        <TodoContext.Provider value={{
+            todos,
+            onTodosCreate: onTodoCreate,
+            onTodoRemove
+        }}>
+            {children}
+        </TodoContext.Provider>
+    )
 }
 
 const TodoItem = ({todo}) => {
+    const {onTodoRemove} = useContext(TodoContext);
 
-  return (
-      <div>
-        <h4>{todo.title}</h4>
-        <p>{todo.description}</p>
-      </div>
-  )
+    const onTodoDelete = () => {
+        const answer = window.confirm('are you sure you want to delete this todo?');
+        if (answer) {
+            //...
+            onTodoRemove(todo.id);
+        }
+    }
+
+    return (
+        <div>
+            <h4>{todo.title}</h4>
+            <p>{todo.description}</p>
+            <button onClick={onTodoDelete}>delete todo</button>
+
+        </div>
+    )
 }
 
 const TodosList = () => {
-  const {
-    todos
-  } = useContext(TodoContext);
+    const {
+        todos
+    } = useContext(TodoContext);
 
-  // console.log(todos, 'from list');
+    // console.log(todos, 'from list');
 
-  return (
-      // <h1>todos list</h1>
-      <div>
-        {todos.map(el => <TodoItem key={el.title + el.description} todo={el}/>)}
-      </div>
-  )
+    return (
+        // <h1>todos list</h1>
+        <div>
+            {todos.map(el => <TodoItem key={el.title + el.description} todo={el}/>)}
+        </div>
+    )
 }
 
 
 const AddTodo = () => {
-  const [todoValues, setTodoValues] = useState({
-    title: '',
-    description: '',
-  })
-
-  // const {todos, onTodosCreate} = useContext(TodoContext);
-  // console.log(todos);
-  const {
-    onTodosCreate
-  } = useContext(TodoContext);
-
-  const onTodoChange = ({target: {name, value}}) => setTodoValues({...todoValues, [name]: value});
-
-  const onCreate = () => {
-    // onTodoAdd (from context)
-    onTodosCreate(todoValues);
-    setTodoValues({
-      title: '',
-      description: '',
+    const [todoValues, setTodoValues] = useState({
+        title: '',
+        description: '',
+        id: null,
     })
-  }
 
-  return (
-      <div>
-        <br/>
-        <input value={todoValues.title} onChange={onTodoChange} type="text" name="title" placeholder="todo title"/>
-        <br/>
-        <br/>
-        <input value={todoValues.description} onChange={onTodoChange} type="text" name="description"
-               placeholder="todo description"/>
-        <br/>
-        <br/>
+    // const {todos, onTodosCreate} = useContext(TodoContext);
+    // console.log(todos);
+    const {
+        onTodosCreate
+    } = useContext(TodoContext);
 
-        <button onClick={onCreate}>add todo</button>
-      </div>
-  )
+    const onTodoChange = ({target: {name, value}}) => setTodoValues({...todoValues, [name]: value});
+
+    const onCreate = () => {
+        // onTodoAdd (from context)
+        onTodosCreate(todoValues);
+        setTodoValues({
+            title: '',
+            description: '',
+            id: Math.random()
+            // uuid - бібліотека генерації id
+        })
+    }
+
+    return (
+        <div>
+            <br/>
+            <input value={todoValues.title} onChange={onTodoChange} type="text" name="title" placeholder="todo title"/>
+            <br/>
+            <br/>
+            <input value={todoValues.description} onChange={onTodoChange} type="text" name="description"
+                   placeholder="todo description"/>
+            <br/>
+            <br/>
+
+            <button onClick={onCreate}>add todo</button>
+        </div>
+    )
 }
 const Header = () => {
-  return (
-      <header>
-        <Link to="/">list</Link>
-        <Link to="/create-todo">add new todo</Link>
-      </header>
-  )
+    return (
+        <header>
+            <Link to="/">list</Link>
+            <Link to="/create-todo">add new todo</Link>
+        </header>
+    )
 }
 
 export default function App() {
-  return (
-      <TodoContextProvider>
-        <main>
-          {/*// 1 список тудушок, де ми можемо маркувати їх як виконані або видаляти*/}
-          {/*// 2 формочка для створення нової тудушки*/}
-          <Router>
-            <Header/>
+    return (
+        <TodoContextProvider>
+            <main>
+                {/*// 1 список тудушок, де ми можемо маркувати їх як виконані або видаляти*/}
+                {/*// 2 формочка для створення нової тудушки*/}
+                <Router>
+                    <Header/>
 
-            <div style={{padding: 20}}>
-              <Switch>
-                <Route path="/" exact>
-                  <TodosList/>
-                </Route>
+                    <div style={{padding: 20}}>
+                        <Switch>
+                            <Route path="/" exact>
+                                <TodosList/>
+                            </Route>
 
-                <Route path="/create-todo">
-                  <AddTodo/>
-                </Route>
-              </Switch>
-            </div>
-          </Router>
-        </main>
+                            <Route path="/create-todo">
+                                <AddTodo/>
+                            </Route>
+                        </Switch>
+                    </div>
+                </Router>
+            </main>
 
-      </TodoContextProvider>
-  );
+        </TodoContextProvider>
+    );
 }
 
 // </>
