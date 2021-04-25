@@ -16,7 +16,8 @@ import {Switch, BrowserRouter as Router, Route, Link} from 'react-router-dom';
 const TodoContext = createContext();
 
 const TodoContextProvider = ({children}) => {
-    const [todos, setTodos] = useState([])
+    const [todos, setTodos] = useState([]);
+    const [doneTodos, setDoneTodos] = useState([]);
 
 
     const onTodoCreate = (newTodo) => {
@@ -24,32 +25,43 @@ const TodoContextProvider = ({children}) => {
             console.error('wrong arg for new todo, should be smth like {title: "...", description: "..."}')
             return
         }
-
         setTodos([newTodo, ...todos])
     }
 
     const onTodoRemove = (todoId) => {
-
         if (!todoId) {
             console.error('todo id looks wrong', todoId)
             return
         }
         setTodos(todos.filter(el => el.id !== todoId))
+        setDoneTodos(doneTodos.filter(id => id !== todoId))
+    }
+
+    const isDoneToggle = (todoId) => {
+        const isTodosMarkedAsDone = doneTodos.includes(todoId);
+
+        if (isTodosMarkedAsDone) {
+            return setDoneTodos(doneTodos.filter(id => id !== todoId))
+        }
+
+        setDoneTodos([...doneTodos, todoId])
     }
 
     return (
         <TodoContext.Provider value={{
             todos,
             onTodosCreate: onTodoCreate,
-            onTodoRemove
+            onTodoRemove,
+            isDoneToggle,
+            doneTodos
         }}>
             {children}
         </TodoContext.Provider>
     )
 }
 
-const TodoItem = ({todo}) => {
-    const {onTodoRemove} = useContext(TodoContext);
+const TodoItem = ({todo, onTodoRemove, isDoneToggle, isDone}) => {
+    // const {onTodoRemove} = useContext(TodoContext);
 
     const onTodoDelete = () => {
         const answer = window.confirm('are you sure you want to delete this todo?');
@@ -59,27 +71,46 @@ const TodoItem = ({todo}) => {
         }
     }
 
+    const onMarkIsDoneToggle = () => isDoneToggle(todo.id)
+
     return (
         <div>
-            <h4>{todo.title}</h4>
-            <p>{todo.description}</p>
+            <div style={{
+                textDecoration: isDone ? 'line-through' : ''
+            }}>
+                <h4>{todo.title}</h4>
+                <p>{todo.description}</p>
+            </div>
             <button onClick={onTodoDelete}>delete todo</button>
-
+            <button onClick={onMarkIsDoneToggle}>mark as {isDone ? 'active' : 'done'}</button>
         </div>
     )
 }
 
 const TodosList = () => {
     const {
-        todos
+        todos,
+        onTodoRemove,
+        isDoneToggle,
+        doneTodos
     } = useContext(TodoContext);
+
+    console.log(doneTodos);
 
     // console.log(todos, 'from list');
 
     return (
         // <h1>todos list</h1>
         <div>
-            {todos.map(el => <TodoItem key={el.title + el.description} todo={el}/>)}
+            {todos.map(el => (
+                <TodoItem
+                    key={el.title + el.description}
+                    todo={el}
+                    onTodoRemove={onTodoRemove}
+                    isDoneToggle={isDoneToggle}
+                    isDone={doneTodos.includes(el.id)}
+                />
+            ))}
         </div>
     )
 }
@@ -94,6 +125,7 @@ const AddTodo = () => {
 
     // const {todos, onTodosCreate} = useContext(TodoContext);
     // console.log(todos);
+    console.log(Math.round((204.23000000000002)*100)/100);
     const {
         onTodosCreate
     } = useContext(TodoContext);
@@ -102,11 +134,11 @@ const AddTodo = () => {
 
     const onCreate = () => {
         // onTodoAdd (from context)
-        onTodosCreate(todoValues);
+        onTodosCreate({...todoValues, id: Math.random()});
         setTodoValues({
             title: '',
             description: '',
-            id: Math.random()
+            id: null
             // uuid - бібліотека генерації id
         })
     }
@@ -127,10 +159,26 @@ const AddTodo = () => {
     )
 }
 const Header = () => {
+    const {
+        todos,
+        doneTodos
+    } = useContext(TodoContext);
+
+
     return (
         <header>
             <Link to="/">list</Link>
             <Link to="/create-todo">add new todo</Link>
+
+            <div style={{flex: 1}}/>
+
+            <h3 style={{marginRight: '6px'}}>tottal todos: {todos.length}</h3>
+            <h3 style={{marginRight: '6px'}}>active todos: {todos.length - doneTodos.length}</h3>
+            <h3 style={{marginRight: '6px'}}>done todos: {doneTodos.length}</h3>
+
+            {/*total todos*/}
+            {/*active todos*/}
+            {/*done todos*/}
         </header>
     )
 }
